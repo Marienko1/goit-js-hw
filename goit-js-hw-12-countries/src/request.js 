@@ -1,0 +1,70 @@
+import countriesQuery from "./fetchCountries";
+import countries from "./template/countryList.hbs";
+import finalCountry from "./template/showCase.hbs";
+import { error, notice } from "@pnotify/core";
+import "@pnotify/core/dist/BrightTheme.css";
+var debounce = require("lodash.debounce");
+let finalMarkup;
+const refs = {
+  clearDoc: document.querySelector(".search-container"),
+  input: document.querySelector("#searchInput"),
+  list: document.querySelector("#articleList"),
+  finalShowCase: document.querySelector("#show-case"),
+};
+refs.input.addEventListener("input", debounce(searchFromInput, 500));
+refs.input.value = localStorage.getItem("Search query");
+
+function searchFromInput(e) {
+  let searchQuery = e.target.value;
+  localStorage.setItem("Search query", searchQuery);
+  clearHTML();
+  clearFinalHtml();
+  console.log(searchQuery);
+  countriesQuery
+    .fetchCountries(searchQuery)
+    .then((data) => {
+      console.log(data);
+
+      const markup = buildCountryList(data);
+      if (data.length <= 10) {
+        insertListItems(markup);
+      } else if (data.length > 10) {
+        error({
+          type: "error",
+          text: "Слишком много совпадений. Введите более спецефический запрос!",
+          addClass: "error",
+          delay: 2000,
+          closer: false,
+          sticker: false,
+          stickerHover: false,
+          animateSpeed: "slow",
+          addClass: "error",
+          width: "600px",
+        });
+      }
+      if (data.length === 1) {
+        clearHTML();
+        finalMarkup = buildShowCase(data);
+        insertFinalShowCase(finalMarkup);
+      }
+    })
+    .catch((error) => console.log(error));
+}
+function buildCountryList(items) {
+  return countries(items);
+}
+function buildShowCase(info) {
+  return finalCountry(info);
+}
+function insertListItems(items) {
+  refs.list.insertAdjacentHTML("beforeend", items);
+}
+function insertFinalShowCase(items) {
+  refs.finalShowCase.insertAdjacentHTML("beforeend", items);
+}
+function clearHTML() {
+  refs.list.innerHTML = "";
+}
+function clearFinalHtml() {
+  refs.finalShowCase.innerHTML = "";
+}
